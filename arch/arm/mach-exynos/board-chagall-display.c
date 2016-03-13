@@ -198,6 +198,9 @@ static struct s3c_fb_platdata chagall_lcd1_pdata __initdata = {
 	.dsim_clk_on	= s5p_mipi_dsi_clk_enable_by_fimd,
 	.dsim_clk_off	= s5p_mipi_dsi_clk_disable_by_fimd,
 	.dsim1_device   = &s5p_device_mipi_dsim1.dev,
+#ifdef CONFIG_FB_HW_TRIGGER
+	.dsim_get_state = lcd_get_mipi_state,
+#endif
 };
 
 #define DSIM_L_MARGIN SMDK5420_HBP

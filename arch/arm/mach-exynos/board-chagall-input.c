@@ -45,6 +45,9 @@ extern unsigned int lcdtype;
 #define PROJECT_CHAGALL_NAME	"SM-T800"
 #define FW_IMAGE_NAME_5700 "tsp_synaptics/synaptics_chagall_5700.fw"
 #define FW_IMAGE_NAME_5710 "tsp_synaptics/synaptics_chagall_5710.fw"
+#define FW_IMAGE_NAME_5710_USA "tsp_synaptics/synaptics_chagall_usa_5710.fw"
+#define FW_IMAGE_NAME_5710_CHN "tsp_synaptics/synaptics_chagall_chn_5710.fw"
+#define FW_IMAGE_NAME_5710_CAN "tsp_synaptics/synaptics_chagall_can_5710.fw"
 
 #define DSX_I2C_ADDR 0x20
 #define DSX_ATTN_GPIO EXYNOS5420_GPX1(6)
@@ -200,7 +203,15 @@ static struct synaptics_rmi4_platform_data dsx_platformdata = {
 	.led_power_on = ts_led_power_on,
 	.f1a_button_map = &button_map
 #endif
+#if defined(CONFIG_TOUCHSCREEN_CHAGALL_LTE_WIFI_CHN)
+	.firmware_name = FW_IMAGE_NAME_5710_CHN,
+#elif !defined(CONFIG_TOUCHSCREEN_CHAGALLLTE_USA) && !defined (CONFIG_TOUCHSCREEN_CHAGALLLTE_CAN)
 	.firmware_name = FW_IMAGE_NAME_5710,
+#elif defined(CONFIG_TOUCHSCREEN_CHAGALLLTE_CAN)
+	.firmware_name = FW_IMAGE_NAME_5710_CAN,
+#else
+	.firmware_name = FW_IMAGE_NAME_5710_USA,
+#endif
 	.project_name = PROJECT_CHAGALL_NAME,
 };
 
@@ -269,7 +280,7 @@ void __init synaptics_dsx_tsp_init(void)
 #define TC300K_FW_NAME_R03 "coreriver/tc300k_chagall_r03.fw"
 
 #define TC300K_FW_VERSION_R00 0x5
-#define TC300K_FW_VERSION_R03 0x18
+#define TC300K_FW_VERSION_R03 0x1C
 
 static bool tc300k_power_enabled;
 static bool tc300k_keyled_enabled;

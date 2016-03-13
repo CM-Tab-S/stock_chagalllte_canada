@@ -249,8 +249,10 @@ static int xmm626x_gpio_l2tol0_resume(struct xmm626x_linkpm_data *pmdata)
 	while (spin-- && !get_hostwake(pmdata))
 		mdelay(5);
 
-	if (!get_hostwake(pmdata))
+	if (!get_hostwake(pmdata)) {
+		set_slavewake(pmdata->pdata, 0);
 		return -ETIMEDOUT;
+	}
 exit:
 	return 0;
 }
@@ -290,9 +292,11 @@ retry:
 			mif_err("xmm626x_gpio_l2tol0_resume fail(%d)\n", ret);
 			goto retry;
 		} else  {
-			mif_err("hostwakeup fail, usb_cp_crash\n");
+			mif_err("hostwakeup fail\n");
+			/* TODO: need to check the GPIO timming...
 			wake_unlock(&pmdata->l2_wake);
 			usb_cp_crash(pmdata->udev, "HostWakeup Fail");
+			*/
 		}
 	}
 
@@ -383,7 +387,8 @@ static int xmm626x_linkpm_usb_notify(struct notifier_block *nfb,
 			/* Share the pmdata with interface driver */
 			pmdata->usb_ld = (struct usb_link_device *)
 				dev_get_drvdata(&udev->dev);
-			mif_info("ld : %s\n", pmdata->usb_ld->ld.name);
+			if(pmdata->usb_ld)
+				mif_info("ld : %s\n", pmdata->usb_ld->ld.name);
 			break;
 		case MIF_BOOT_DEVICE:
 			mif_info("boot dev connected\n");
@@ -590,7 +595,10 @@ static void link_pm_runtime_work(struct work_struct *work)
 	int delay;
 
 	mif_debug("rpm_status(%d)\n", dev->power.runtime_status);
-
+	if (pmdata->usb_ld->ld.mc->phone_state != STATE_ONLINE) {
+		mif_err("modem status is not STATE_ONLINE\n");
+		return;
+	}
 	switch (dev->power.runtime_status) {
 	case RPM_SUSPENDED:
 		if (pmdata->resume_req)

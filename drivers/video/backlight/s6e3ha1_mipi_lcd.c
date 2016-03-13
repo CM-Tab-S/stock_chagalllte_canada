@@ -27,6 +27,7 @@
 
 #include <video/mipi_display.h>
 #include <plat/dsim.h>
+#include <plat/regs-mipidsim.h>
 #include <plat/mipi_dsi.h>
 #include <plat/gpio-cfg.h>
 #include <asm/system_info.h>
@@ -156,6 +157,19 @@ struct lcd_info {
 
 static void s6e3ha1_enable_errfg(struct lcd_info *lcd);
 
+#ifdef CONFIG_FB_HW_TRIGGER
+static struct lcd_info *g_lcd;
+
+int lcd_get_mipi_state(struct device *dsim_device)
+{
+	struct lcd_info *lcd = g_lcd;
+
+	if (lcd->connected && !lcd->err_count)
+		return 0;
+	else
+		return -ENODEV;
+}
+#endif
 int s6e3ha1_write(struct lcd_info *lcd, const u8 *seq, u32 len)
 {
 	int ret;
@@ -1182,6 +1196,16 @@ static int s6e3ha1_fb_notifier_callback(struct notifier_block *self,
 		case FB_BLANK_UNBLANK:
 			s6e3ha1_ldi_enable(lcd);
 			lcd->fb_unblank = 1;
+
+#ifdef CONFIG_FB_HW_TRIGGER
+			/* if FullLMain is 1, Mipi cmd cannot be transmitted. */
+			/* PLM : P150407-04942(T705) */
+			if( lcd->dsim && (readl(lcd->dsim->reg_base + S5P_DSIM_FIFOCTRL)&0x200) ) {
+				s5p_mipi_dsi_func_reset(lcd->dsim);
+				dev_err(&lcd->ld->dev, "%s : Main display payload FIFO is full\n", __func__ );
+			}
+#endif
+
 			update_brightness(lcd, 0);
 			break;
 		default:
@@ -1582,6 +1606,9 @@ static int s6e3ha1_probe(struct mipi_dsim_device *dsim)
 		ret = PTR_ERR(lcd->bd);
 		goto out_free_backlight;
 	}
+#ifdef CONFIG_FB_HW_TRIGGER
+	g_lcd = lcd;
+#endif
 	lcd->dev = dsim->dev;
 	lcd->dsim = dsim;
 	lcd->bd->props.max_brightness = MAX_BRIGHTNESS;

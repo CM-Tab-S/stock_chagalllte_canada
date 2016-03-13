@@ -1132,11 +1132,12 @@ static int __cdc_ncm_rx_fixup(struct if_usb_devdata *pipe_data,
 
 		} else {
 			if (copy) {
-				skb = alloc_skb(len, GFP_ATOMIC);
+				skb = alloc_skb(len + 2, GFP_ATOMIC);
 				if (unlikely(!skb)) {
 					mif_err("fragHeader skb alloc fail\n");
 					goto error;
 				}
+				skb_reserve(skb, 2);
 				memcpy(skb_put(skb, len),
 					(u8 *)skb_in->data + offset, len);
 			} else {

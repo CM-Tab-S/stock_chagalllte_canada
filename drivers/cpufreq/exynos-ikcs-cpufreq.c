@@ -1202,7 +1202,7 @@ struct freq_qos_val {
 
 static void get_boot_freq_qos(struct freq_qos_val *boot_freq_qos)
 {
-#if defined(CONFIG_RTC_DRV_MAX77802) || defined(CONFIG_CHAGALL) || defined(CONFIG_KLIMT)
+#if defined(CONFIG_RTC_DRV_MAX77802)
 	if (pmic_is_jig_attached) {
 #if defined(CONFIG_TARGET_LOCALE_DEMO)
 		boot_freq_qos->min_freq = 1000000;
@@ -1214,6 +1214,25 @@ static void get_boot_freq_qos(struct freq_qos_val *boot_freq_qos)
 		boot_freq_qos->min_timeout_us = 360000 * 1000;
 		boot_freq_qos->max_freq = 1000000;
 		boot_freq_qos->max_timeout_us = 360000 * 1000;
+#endif
+	} else {
+		boot_freq_qos->min_freq = 1500000;
+		boot_freq_qos->min_timeout_us = 40000 * 1000;
+		boot_freq_qos->max_freq = 1500000;
+		boot_freq_qos->max_timeout_us = 40000 * 1000;
+	}
+#elif defined(CONFIG_CHAGALL) || defined(CONFIG_KLIMT)
+	if (pmic_is_jig_attached) {
+#if defined(CONFIG_TARGET_LOCALE_DEMO)
+		boot_freq_qos->min_freq = 1000000;
+		boot_freq_qos->min_timeout_us = 900000 * 1000;
+		boot_freq_qos->max_freq = 1000000;
+		boot_freq_qos->max_timeout_us = 900000 * 1000;
+#else
+		boot_freq_qos->min_freq = 1000000;
+		boot_freq_qos->min_timeout_us = 500000 * 1000;
+		boot_freq_qos->max_freq = 1000000;
+		boot_freq_qos->max_timeout_us = 500000 * 1000;
 #endif
 	} else {
 		boot_freq_qos->min_freq = 1500000;

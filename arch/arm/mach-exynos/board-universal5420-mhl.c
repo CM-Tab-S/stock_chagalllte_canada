@@ -197,6 +197,19 @@ static void sii8240_charger_mhl_cb(bool otg_enable, int plim)
 	} else
 		current_cable_type = POWER_SUPPLY_TYPE_BATTERY;
 
+	if (muic_cable_type == CABLE_TYPE_MMDOCK_MUIC) {
+		if (otg_enable == true || plim == 0x00) {
+			pr_info("sii8240: MMDOCK: charger_mhl_cb do nothing\n");
+			return;
+		} else if (current_cable_type != POWER_SUPPLY_TYPE_BATTERY) {
+			current_cable_type = (plim == 0x03) ? POWER_SUPPLY_TYPE_MDOCK_USB :
+									POWER_SUPPLY_TYPE_MDOCK_TA;
+			power_type = ONLINE_POWER_TYPE_UNKNOWN;
+			sub_type = ONLINE_SUB_TYPE_UNKNOWN;
+			pr_info("sii8240: MMDOCK: POWER_SUPPLY_TYPE_MDOCK, plim=%d\n", plim);
+		}
+	}
+
 	if (otg_enable) {
 		if(!sii8240_vbus_present()) {
 			if (!lpcharge) {

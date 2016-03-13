@@ -156,6 +156,17 @@ struct lcd_info {
 static struct lcd_info *g_lcd;
 static int update_brightness(struct lcd_info *lcd, u8 force);
 
+#ifdef CONFIG_FB_HW_TRIGGER
+int lcd_get_mipi_state(struct device *dsim_device)
+{
+	struct lcd_info *lcd = g_lcd;
+
+	if (lcd->connected && !lcd->err_count)
+		return 0;
+	else
+		return -ENODEV;
+}
+#endif
 static int s6tnmr7_write(struct lcd_info *lcd, const u8 *seq, u32 len)
 {
 	int ret;

@@ -1425,6 +1425,13 @@ menuconfig SEC_DEBUG
 	help
 	  Samsung TN Ramdump Feature. Use INFORM3 and magic number at 0xc0000000.
 
+comment "BSP Feature"
+menuconfig SEC_BSP
+	bool "Samsung TN BSP Feature"
+	default n
+	help
+		Samsung TN BSP Feature.
+
 if SEC_DEBUG
 config SEC_DEBUG_SCHED_LOG
 	bool "Samsung Scheduler Logging Feature"

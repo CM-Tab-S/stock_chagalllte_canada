@@ -154,6 +154,8 @@ static int sec_bat_set_charge(
 		val.intval = battery->cable_type;
 		/*Reset charging start time only in initial charging start */
 		if (battery->charging_start_time == 0) {
+			if (ts.tv_sec < 1)
+				ts.tv_sec = 1;
 			battery->charging_start_time = ts.tv_sec;
 			battery->charging_next_time =
 				battery->pdata->charging_reset_time;
@@ -1554,7 +1556,11 @@ static void sec_bat_get_battery_info(
 				struct sec_battery_info *battery)
 {
 	union power_supply_propval value;
-
+#if defined(CONFIG_KLIMT) || defined(CONFIG_CHAGALL)
+	static struct timespec old_ts;
+	struct timespec c_ts;
+	c_ts = ktime_to_timespec(ktime_get_boottime());
+#endif
 	psy_do_property("sec-fuelgauge", get,
 		POWER_SUPPLY_PROP_VOLTAGE_NOW, value);
 	battery->voltage_now = value.intval;
@@ -1597,13 +1603,21 @@ static void sec_bat_get_battery_info(
 		else
 			battery->capacity = value.intval;
 	}
-#elif defined(CONFIG_V1A) || defined(CONFIG_V2A)
+#elif defined(CONFIG_V1A) || defined(CONFIG_V2A) || defined(CONFIG_KLIMT) || defined(CONFIG_CHAGALL)
 	/* if the battery status was full, and SOC wasn't 100% yet,
 		then ignore FG SOC, and report (previous SOC +1)% */
 	if (battery->status != POWER_SUPPLY_STATUS_FULL)
 		battery->capacity = value.intval;
-	else if (battery->capacity != 100)
+#if defined(CONFIG_KLIMT) || defined(CONFIG_CHAGALL)
+	else if ((battery->capacity != 100) && ((c_ts.tv_sec - old_ts.tv_sec) >= 30)){
+		old_ts = c_ts;
+#else
+	else if (battery->capacity != 100){
+#endif
 		battery->capacity++;
+		pr_info("%s : forced full-charged sequence for the capacity(%d)\n",
+			__func__, battery->capacity);
+	}
 #else
 	battery->capacity = value.intval;
 #endif
@@ -2862,12 +2876,13 @@ static int sec_bat_get_property(struct power_supply *psy,
 					case POWER_SUPPLY_TYPE_USB_DCP:
 					case POWER_SUPPLY_TYPE_USB_CDP:
 					case POWER_SUPPLY_TYPE_USB_ACA:
+					case POWER_SUPPLY_TYPE_MDOCK_USB:
 						val->intval =
 							POWER_SUPPLY_STATUS_DISCHARGING;
 						return 0;
 					}
 			}
-#if defined(CONFIG_V1A) || defined(CONFIG_V2A)
+#if defined(CONFIG_V1A) || defined(CONFIG_V2A) || defined(CONFIG_KLIMT) || defined(CONFIG_CHAGALL)
 			if (battery->status == POWER_SUPPLY_STATUS_FULL &&
 				battery->capacity != 100) {
 				val->intval = POWER_SUPPLY_STATUS_CHARGING;
@@ -2933,7 +2948,7 @@ static int sec_bat_get_property(struct power_supply *psy,
 		val->intval = battery->charging_mode;
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
-#if defined(CONFIG_V1A) || defined(CONFIG_V2A)
+#if defined(CONFIG_V1A) || defined(CONFIG_V2A) || defined(CONFIG_KLIMT) || defined(CONFIG_CHAGALL)
 		val->intval = battery->capacity;
 #else
 		/* In full-charged status, SOC is always 100% */
@@ -2978,6 +2993,7 @@ static int sec_usb_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_TYPE_USB_CDP:
 	case POWER_SUPPLY_TYPE_USB_ACA:
 	case POWER_SUPPLY_TYPE_MHL_USB:
+	case POWER_SUPPLY_TYPE_MDOCK_USB:
 		val->intval = 1;
 		break;
 	default:
@@ -3013,6 +3029,9 @@ static int sec_ac_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_TYPE_WPC:
 	case POWER_SUPPLY_TYPE_UNKNOWN:
 	case POWER_SUPPLY_TYPE_LAN_HUB:
+	case POWER_SUPPLY_TYPE_SMART_OTG:
+	case POWER_SUPPLY_TYPE_SMART_NOTG:
+	case POWER_SUPPLY_TYPE_MDOCK_TA:
 		val->intval = 1;
 		break;
 	default:

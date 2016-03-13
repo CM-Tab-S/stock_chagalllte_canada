@@ -95,6 +95,8 @@ struct max77803_charger_data {
 #endif
 	int		soft_reg_recovery_cnt;
 
+	bool is_mdock;
+	bool is_otg;
 	int pmic_ver;
 	int input_curr_limit_step;
 	int wpc_input_curr_limit_step;
@@ -945,6 +947,8 @@ static int sec_chg_set_property(struct power_supply *psy,
 		if (val->intval == POWER_SUPPLY_TYPE_BATTERY) {
 			charger->is_charging = false;
 			charger->soft_reg_recovery_cnt = 0;
+			charger->is_mdock = false;
+			charger->is_otg = false;
 			set_charging_current = 0;
 			set_charging_current_max =
 				charger->pdata->charging_current[
@@ -961,6 +965,7 @@ static int sec_chg_set_property(struct power_supply *psy,
 				}
 			}
 		} else {
+			pr_info("%s: cable type = %d\n", __func__, charger->cable_type);
 			charger->is_charging = true;
 
 			if ((charger->cable_type == POWER_SUPPLY_TYPE_USB)
@@ -971,6 +976,27 @@ static int sec_chg_set_property(struct power_supply *psy,
 					POWER_SUPPLY_TYPE_MAINS].fast_charging_current;
 				charger->charging_current_max =	charger->pdata->charging_current[
 						POWER_SUPPLY_TYPE_MAINS].input_current_limit;
+			}
+
+			if (charger->cable_type == POWER_SUPPLY_TYPE_SMART_NOTG)
+				charger->is_otg = false;
+			else if (charger->cable_type == POWER_SUPPLY_TYPE_SMART_OTG)
+				charger->is_otg = true;
+			if (charger->cable_type == POWER_SUPPLY_TYPE_MDOCK_TA)
+				charger->is_mdock = true;
+
+			if(charger->is_mdock){
+				if(charger->is_otg){
+					charger->charging_current = charger->pdata->charging_current[
+					POWER_SUPPLY_TYPE_MDOCK_TA].fast_charging_current - 300;
+					charger->charging_current_max = charger->pdata->charging_current[
+					POWER_SUPPLY_TYPE_MDOCK_TA].input_current_limit - 300;
+				}else{
+					charger->charging_current = charger->pdata->charging_current[
+					POWER_SUPPLY_TYPE_MDOCK_TA].fast_charging_current;
+					charger->charging_current_max = charger->pdata->charging_current[
+					POWER_SUPPLY_TYPE_MDOCK_TA].input_current_limit;
+				}
 			}
 
 			/* decrease the charging current according to siop level */

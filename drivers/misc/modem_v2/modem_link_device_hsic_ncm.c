@@ -1924,6 +1924,7 @@ static int if_init_rx_urb(struct if_usb_devdata *pipe_data,
 
 		skb = alloc_skb(alloc_size, GFP_KERNEL | GFP_DMA);
 		if (!skb) {
+			usb_free_urb(urb);
 			mif_err("Failed to alloc rx_skb\n");
 			return -ENOMEM;
 		}
